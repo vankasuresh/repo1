@@ -3,46 +3,53 @@ pipeline{
         jdk 'myjava'
         maven 'mymaven'
     }
-    
-            agent any
-            steps{
-                git 'https://github.com/devops-trainer/DevOpsClassCodes.git'
-            
-            }
-            
-        }
-        stage('compile'){
-            agent any
-            steps{
-                sh 'mvn compile'
+    agent none
+        stages{
+             stage('Compile'){
+                agent any
+                steps{
+                    sh 'mvn compile'
+                }
                 
-            } 
-            
             }
-            stage ('codereview'){
+            stage('CodeReview'){
                 agent any
                 steps{
                     sh 'mvn pmd:pmd'
                 }
-            }
-            stage ('UnitTest'){
-                agent any
-                steps{
-                    git 'https://github.com/devops-trainer/DevOpsClassCodes.git'
-                    sh 'mvn test'
+                post{
+                    always{
+                        pmd pattern: 'target/pmd.xml'
+                    }
                 }
             }
-            stage ('metrixcheck'){
+            stage('UnitTest'){
+                agent {label 'win_slave'}
+                steps{
+                    git 'https://github.com/devops-trainer/DevOpsClassCodes.git'
+                    bat 'mvn test'
+                }
+                
+            }
+            stage('MetriCheck'){
                 agent any
                 steps{
                     sh 'mvn cobertura:cobertura -Dcobertura.report.format=xml'
-                    
+                }
+                post{
+                    always{
+                        cobertura coberturaReportFile: 'target/site/cobertura/coverage.xml'
+                    }
                 }
             }
-            stage ('packaging'){
+            stage('Package'){
                 agent any
                 steps{
                     sh 'mvn package'
-                    
                 }
             }
+            
+        }
+    
+    }
+
